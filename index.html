@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bounty Hunter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #fafafa;
+  --bg-glass: rgba(255,255,255,0.72);
+  --bg-card: rgba(255,255,255,0.6);
+  --border: rgba(0,0,0,0.06);
+  --border-strong: rgba(0,0,0,0.1);
+  --text: #1a1a1a;
+  --text-muted: #6b7280;
+  --text-light: #9ca3af;
+  --accent: #2563eb;
+  --green: #059669;
+  --green-bg: #ecfdf5;
+  --purple: #7c3aed;
+  --purple-bg: #f5f3ff;
+  --yellow: #d97706;
+  --yellow-bg: #fffbeb;
+  --red: #dc2626;
+  --blur: 16px;
+  --radius: 12px;
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-display: 'Instrument Serif', Georgia, serif;
+  --mono: 'JetBrains Mono', 'SF Mono', monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+  padding-bottom: 120px;
+  background-image:
+    radial-gradient(ellipse at 20% 0%, rgba(99,102,241,0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 0%, rgba(16,185,129,0.04) 0%, transparent 50%);
+}
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--bg-glass);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  border-bottom: 1px solid var(--border);
+  padding: 10px 0;
+}
+.topbar-inner {
+  max-width: 1200px; margin: 0 auto; padding: 0 24px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.logo {
+  font-family: var(--font-display);
+  font-size: 20px; color: var(--text);
+  display: flex; align-items: center; gap: 10px;
+  text-decoration: none;
+}
+.logo-mark {
+  width: 28px; height: 28px; background: var(--text);
+  border-radius: 6px; display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 13px; font-weight: 800; font-family: var(--font);
+}
+.topbar-nav { display: flex; align-items: center; gap: 2px; }
+.topbar-nav button {
+  padding: 6px 14px; border-radius: 8px; font-size: 12px;
+  font-weight: 500; cursor: pointer; border: none;
+  background: none; color: var(--text-muted); transition: all 0.15s;
+  font-family: var(--font);
+}
+.topbar-nav button:hover { background: rgba(0,0,0,0.04); color: var(--text); }
+.topbar-nav button.active { background: var(--text); color: #fff; }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.pill {
+  font-size: 11px; padding: 4px 10px; border-radius: 20px;
+  background: var(--bg-glass); border: 1px solid var(--border);
+  color: var(--text-muted); font-weight: 500;
+  backdrop-filter: blur(8px);
+}
+.pill strong { color: var(--text); }
+.sort-sel {
+  font-size: 12px; padding: 6px 10px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--bg-glass);
+  color: var(--text); cursor: pointer; font-family: var(--font);
+}
+.hero {
+  max-width: 1200px; margin: 0 auto; padding: 48px 24px 28px;
+}
+.hero h1 {
+  font-family: var(--font-display);
+  font-size: 36px; font-weight: 400; letter-spacing: -0.3px;
+  margin-bottom: 8px;
+}
+.hero p { font-size: 14px; color: var(--text-muted); max-width: 520px; }
+.meta-row { display: flex; gap: 24px; margin-top: 20px; flex-wrap: wrap; }
+.meta-item {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--text-light); font-weight: 600;
+}
+.meta-item span {
+  color: var(--text); font-weight: 700; font-size: 18px;
+  font-family: var(--mono); display: block; margin-bottom: 2px;
+}
+.container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+.section-label {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 1.2px; color: var(--text-light);
+  margin: 32px 0 14px; padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 10px;
+}
+.card {
+  background: var(--bg-card);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px;
+  text-decoration: none; color: var(--text);
+  transition: all 0.2s; position: relative;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.card:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+  transform: translateY(-2px);
+}
+.card-title { font-size: 14px; font-weight: 600; line-height: 1.4; padding-right: 28px; }
+.card-meta { display: flex; align-items: center; gap: 10px; }
+.reward { font-size: 14px; font-weight: 600; color: var(--green); font-family: var(--mono); }
+.deadline-badge {
+  font-size: 10px; font-weight: 600; padding: 2px 8px;
+  border-radius: 10px; background: var(--yellow-bg); color: var(--yellow);
+}
+.deadline-badge.expired { background: #fef2f2; color: var(--red); }
+.card-footer { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.tag {
+  font-size: 9px; font-weight: 600; padding: 3px 8px;
+  border-radius: 4px; text-transform: uppercase; letter-spacing: 0.4px;
+}
+.tag-content { background: var(--green-bg); color: var(--green); }
+.tag-dev { background: #eff6ff; color: var(--accent); }
+.tag-sc { background: var(--purple-bg); color: var(--purple); }
+.tag-default { background: var(--yellow-bg); color: var(--yellow); }
+.source-label { font-size: 10px; color: var(--text-light); margin-left: auto; }
+.bookmark-btn {
+  position: absolute; top: 12px; right: 12px;
+  background: none; border: none; cursor: pointer;
+  font-size: 14px; opacity: 0.3; transition: opacity 0.15s; padding: 2px;
+}
+.bookmark-btn:hover { opacity: 0.8; }
+.bookmark-btn.saved { opacity: 1; }
+.x-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 8px;
+}
+.x-btn {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; border: 1px solid var(--border);
+  border-radius: var(--radius); text-decoration: none;
+  color: var(--text-muted); font-size: 12px; transition: all 0.15s;
+  background: var(--bg-card); backdrop-filter: blur(8px);
+}
+.x-btn:hover { border-color: #1d9bf0; color: #1d9bf0; background: #f0f9ff; }
+.x-btn .xi { color: #1d9bf0; font-weight: 700; font-size: 14px; }
+.panel { display: none; }
+.panel.active { display: block; }
+.empty { text-align: center; padding: 60px 20px; color: var(--text-light); }
+.empty-icon { font-size: 32px; margin-bottom: 8px; }
+.chat-backdrop {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  display: flex; justify-content: center;
+  padding: 0 24px 20px; pointer-events: none; z-index: 1000;
+}
+.chat-container { width: 100%; max-width: 640px; pointer-events: all; }
+.chat-messages-panel {
+  max-height: 0; overflow: hidden; transition: max-height 0.3s ease;
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-bottom: none; border-radius: 16px 16px 0 0;
+  margin-bottom: -1px;
+}
+.chat-messages-panel.open {
+  max-height: 340px; overflow-y: auto; padding: 16px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.chat-msg {
+  padding: 10px 14px; border-radius: 10px;
+  font-size: 13px; line-height: 1.5; max-width: 85%; word-wrap: break-word;
+}
+.chat-user {
+  background: var(--text); color: #fff;
+  align-self: flex-end; border-bottom-right-radius: 3px;
+}
+.chat-assistant {
+  background: #fff; color: var(--text);
+  border: 1px solid var(--border);
+  align-self: flex-start; border-bottom-left-radius: 3px;
+}
+.typing { color: var(--text-muted); font-style: italic; }
+.chat-input-bar {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: 14px; padding: 12px 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.03);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.chat-input-bar:focus-within {
+  border-color: rgba(37,99,235,0.3);
+  box-shadow: 0 8px 32px rgba(37,99,235,0.08), 0 2px 8px rgba(0,0,0,0.03);
+}
+.chat-input-bar textarea {
+  flex: 1; border: none; outline: none; resize: none;
+  font-size: 14px; font-family: var(--font); color: var(--text);
+  background: transparent; line-height: 1.5; max-height: 100px;
+}
+.chat-input-bar textarea::placeholder { color: var(--text-light); }
+.chat-send-btn {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: var(--text); border: none; color: #fff;
+  font-size: 14px; cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.chat-send-btn:hover { background: var(--accent); }
+.chat-hint {
+  text-align: center; font-size: 11px; color: var(--text-light);
+  margin-top: 6px; font-family: var(--mono);
+}
+.footer {
+  max-width: 1200px; margin: 40px auto 0; padding: 20px 24px;
+  border-top: 1px solid var(--border);
+  font-size: 11px; color: var(--text-light); text-align: center;
+}
+.footer a { color: var(--text-muted); text-decoration: none; }
+.footer a:hover { color: var(--accent); }
+.footer code {
+  background: rgba(0,0,0,0.04); padding: 2px 6px; border-radius: 4px;
+  font-family: var(--mono); font-size: 11px;
+}
+@media (max-width: 640px) {
+  .hero h1 { font-size: 26px; }
+  .grid { grid-template-columns: 1fr; }
+  .topbar-nav { display: none; }
+  .chat-container { max-width: 100%; }
+}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="topbar-inner">
+  <a class="logo" href="#"><div class="logo-mark">B</div>Bounty Hunter</a>
+  <div class="topbar-nav">
+    <button class="active" onclick="switchTab('all')">All</button>
+    <button onclick="switchTab('search')">X Search</button>
+    <button onclick="switchTab('superteam')">Superteam</button>
+    <button onclick="switchTab('code4rena')">Code4rena</button>
+    <button onclick="switchTab('immunefi')">Immunefi</button>
+    <button onclick="switchTab('sherlock')">Sherlock</button>
+    <button onclick="switchTab('bookmarks')">Saved</button>
+  </div>
+  <div class="topbar-right">
+    <span class="pill"><strong>43</strong> bounties</span>
+    <select class="sort-sel" id="sort-select" onchange="applySort()">
+      <option value="reward-desc">Reward down</option>
+      <option value="reward-asc">Reward up</option>
+      <option value="deadline">Deadline</option>
+      <option value="source">Source</option>
+    </select>
+  </div>
+</div></div>
+<div class="hero">
+  <h1>Find bounties. Ship work. Get paid.</h1>
+  <p>Aggregated from Superteam, Immunefi, Code4rena, Sherlock. Ask Hermes below.</p>
+  <div class="meta-row">
+    <div class="meta-item"><span>0</span>Content</div>
+    <div class="meta-item"><span>23</span>Dev</div>
+    <div class="meta-item"><span>20</span>Smart Contract</div>
+    <div class="meta-item"><span>2026-05-15</span>Last Fetch</div>
+  </div>
+</div>
+<div class="container">
+  <div id="panel-all" class="panel active"></div>
+  <div id="panel-search" class="panel">
+    <div class="section-label">Live X Search</div>
+    <div class="x-grid">
+      <a class="x-btn" href="https://x.com/search?q=%22bounty%22+%22web3%22+%22%24%22+min_faves%3A20&f=live" target="_blank"><span class="xi">X</span> Web3 Bounty</a>
+      <a class="x-btn" href="https://x.com/search?q=%22content+bounty%22+OR+%22thread+bounty%22+min_faves%3A10&f=live" target="_blank"><span class="xi">X</span> Content / Thread Bounty</a>
+      <a class="x-btn" href="https://x.com/search?q=%22gitcoin%22+%22bounty%22+%22typescript%22+OR+%22react%22&f=live" target="_blank"><span class="xi">X</span> Gitcoin TS/React</a>
+      <a class="x-btn" href="https://x.com/search?q=from%3Asuperteamdao+OR+from%3Aarbitrum+%22bounty%22&f=live" target="_blank"><span class="xi">X</span> Superteam / Arbitrum</a>
+      <a class="x-btn" href="https://x.com/search?q=%22bug+bounty%22+%22%2410k%22+OR+%22%2450k%22&f=live" target="_blank"><span class="xi">X</span> Bug Bounty $10k+</a>
+      <a class="x-btn" href="https://x.com/search?q=%22audit+contest%22+OR+%22code4rena%22+OR+%22sherlock%22&f=live" target="_blank"><span class="xi">X</span> Audit Contest</a>
+    </div>
+  </div>
+  <div id="panel-superteam" class="panel"></div>
+  <div id="panel-code4rena" class="panel"></div>
+  <div id="panel-immunefi" class="panel"></div>
+  <div id="panel-sherlock" class="panel"></div>
+  <div id="panel-bookmarks" class="panel"></div>
+</div>
+<div class="footer">
+  <p>Start: <code>cd ~/Desktop/bounty-hunter; python3 serve.py</code></p>
+  <p style="margin-top:6px"><a href="https://superteam.fun/bounties" target="_blank">Superteam</a> . <a href="https://code4rena.com/audits" target="_blank">Code4rena</a> . <a href="https://immunefi.com/explore/" target="_blank">Immunefi</a> . <a href="https://audits.sherlock.xyz" target="_blank">Sherlock</a></p>
+</div>
+<div class="chat-backdrop"><div class="chat-container">
+  <div id="chat-messages-panel" class="chat-messages-panel">
+    <div class="chat-msg chat-assistant">Hai! Tanya soal bounty - analisa, strategi, skill yang dibutuhkan.</div>
+  </div>
+  <div class="chat-input-bar">
+    <textarea id="chat-input" placeholder="Ask Hermes about bounties..." rows="1" onkeydown="chatKeydown(event)" oninput="autoResize(this)"></textarea>
+    <button class="chat-send-btn" onclick="sendChat()">^</button>
+  </div>
+  <div class="chat-hint">hermes-agent . enter to send</div>
+</div></div>
+<script>
+const bounties = [{"id": "superteam-71d30ee6-228e-4805-affd-ec5c26535e20", "source": "Superteam Earn", "title": "HelpBnk x Superteam | Business Challenge", "reward": "$10,000 USDG", "reward_usd": 10000, "deadline": "2026-05-17T22:59:59.000Z", "url": "https://superteam.fun/earn/listing/helpbnk-superteam-business-challenge-march-2026", "sponsor": "Superteam UK", "type": "bounty", "category": "dev"}, {"id": "superteam-505a3d16-6bd2-45f3-83f1-487ff4e7308c", "source": "Superteam Earn", "title": "Solana Summit Kazakhstan — Startup Battle (Live Pitch Competition)", "reward": "$10,000 USDG", "reward_usd": 10000, "deadline": "2026-05-23T18:59:59.000Z", "url": "https://superteam.fun/earn/listing/solana-summit-kazakhstan-startup-battle-live-pitch-competition", "sponsor": "Superteam Kazakhstan", "type": "bounty", "category": "dev"}, {"id": "superteam-ca7b001d-d4a3-4903-8b69-d2f7246e2a5c", "source": "Superteam Earn", "title": "Create Content about the Solana Summit in Germany", "reward": "$10,000 USDG", "reward_usd": 10000, "deadline": "2026-06-05T21:59:59.000Z", "url": "https://superteam.fun/earn/listing/create-content-about-the-solana-summit-in-germany", "sponsor": "Superteam Germany", "type": "bounty", "category": "dev"}, {"id": "superteam-3153b32b-8329-44ae-b9c6-70637bf0598a", "source": "Superteam Earn", "title": "Pitch & Demo Your Product at Superteam Ukraine's Online Demo Day", "reward": "$800 USDG", "reward_usd": 800, "deadline": "2026-05-15T20:59:59.999Z", "url": "https://superteam.fun/earn/listing/pitch-and-demo-your-product-at-superteam-ukraines-online-demo-day", "sponsor": "Superteam Ukraine", "type": "bounty", "category": "dev"}, {"id": "superteam-ae53a4ec-831f-4bb8-9d6b-7718ca5ca457", "source": "Superteam Earn", "title": "Internships: Colosseum Frontier", "reward": "$1,400 USDG", "reward_usd": 1400, "deadline": "2026-05-15T22:59:59.000Z", "url": "https://superteam.fun/earn/listing/internships-colosseum-frontier", "sponsor": "Superteam UK", "type": "bounty", "category": "dev"}, {"id": "superteam-60739884-8751-433a-a685-ad7d9c51d276", "source": "Superteam Earn", "title": "Artist Competition To Be Featured at Solana Breakpoint London 2026", "reward": "$1,500 USDG", "reward_usd": 1500, "deadline": "2026-05-15T22:59:59.999Z", "url": "https://superteam.fun/earn/listing/bp26-artist-competition", "sponsor": "Superteam UK", "type": "bounty", "category": "dev"}, {"id": "superteam-3049faed-1ba0-4c72-ac08-224bc5bad57c", "source": "Superteam Earn", "title": "Birdeye Data 4-Week BIP Competition — Sprint 4", "reward": "$500 USDC", "reward_usd": 500, "deadline": "2026-05-16T16:59:59.999Z", "url": "https://superteam.fun/earn/listing/birdeye-data-4-week-bip-competition-sprint-4", "sponsor": "Birdeye Data", "type": "bounty", "category": "dev"}, {"id": "superteam-36ec7f3a-ae73-43ca-9d78-d6d332b36560", "source": "Superteam Earn", "title": "Covenant Ambassador Sprint Write, Battle, Earn USDC", "reward": "$620 USDC", "reward_usd": 620, "deadline": "2026-05-16T20:59:59.000Z", "url": "https://superteam.fun/earn/listing/covenant-battle", "sponsor": "Cortex Labs", "type": "bounty", "category": "dev"}, {"id": "superteam-3e730a1e-e2d6-4aed-be38-1c52120b039e", "source": "Superteam Earn", "title": "Pitch & Demo Your Project at Kyiv Demo Day", "reward": "$1,700 USDG", "reward_usd": 1700, "deadline": "2026-05-16T20:59:59.999Z", "url": "https://superteam.fun/earn/listing/pitch-and-demo-your-project-at-kyiv-demo-day", "sponsor": "Superteam Ukraine", "type": "bounty", "category": "dev"}, {"id": "superteam-d3401ce3-dc6d-4b37-9692-a0f37060bde5", "source": "Superteam Earn", "title": "Solana Summit Kazakhstan — Merch Design Bounty", "reward": "$700 USDG", "reward_usd": 700, "deadline": "2026-05-17T18:59:59.000Z", "url": "https://superteam.fun/earn/listing/solana-summit-kazakhstan-merch-design-bounty", "sponsor": "Superteam Kazakhstan", "type": "bounty", "category": "dev"}, {"id": "superteam-bad103e3-a2cd-4a56-906b-73f98015cb38", "source": "Superteam Earn", "title": "Share VaultMind Scan Insights in a Twitter Thread", "reward": "$500 USDG", "reward_usd": 500, "deadline": "2026-05-17T21:59:59.000Z", "url": "https://superteam.fun/earn/listing/share-vaultmind-scan-insights-in-a-twitter-thread", "sponsor": "Superteam Netherlands", "type": "bounty", "category": "dev"}, {"id": "superteam-0d8c17e5-480b-4df6-a886-3b5e36c9967c", "source": "Superteam Earn", "title": "Participate in Mentioned's Team Trading Competition", "reward": "$600 USDG", "reward_usd": 600, "deadline": "2026-05-17T22:59:59.000Z", "url": "https://superteam.fun/earn/listing/participate-in-mentioneds-team-trading-competition", "sponsor": "Superteam Ireland", "type": "bounty", "category": "dev"}, {"id": "superteam-fe332ac3-123b-40fd-9e08-90ca0006d960", "source": "Superteam Earn", "title": "Analyze Web3 Legal Environment in Ukraine", "reward": "$1,150 USDG", "reward_usd": 1150, "deadline": "2026-05-18T20:59:59.999Z", "url": "https://superteam.fun/earn/listing/analyze-web3-legal-environment-in-ukraine", "sponsor": "Superteam Ukraine", "type": "bounty", "category": "dev"}, {"id": "superteam-075a1cc3-382a-4aef-8532-c6b3e90bf630", "source": "Superteam Earn", "title": "Product Feedback", "reward": "$150 USDT", "reward_usd": 150, "deadline": "2026-05-20T12:00:59.000Z", "url": "https://superteam.fun/earn/listing/poh-product-feedback", "sponsor": "Proof of Human", "type": "bounty", "category": "dev"}, {"id": "superteam-531c576e-c396-4ef4-8cb4-b6a38474d776", "source": "Superteam Earn", "title": "Promote Solana Summit Kazakhstan — Content & Community Bounty", "reward": "$7,000 USDG", "reward_usd": 7000, "deadline": "2026-05-21T18:59:59.000Z", "url": "https://superteam.fun/earn/listing/promote-solana-summit-kazakhstan-content-and-community-bounty", "sponsor": "Superteam Kazakhstan", "type": "bounty", "category": "dev"}, {"id": "superteam-f5e68b87-4e4c-4b0c-9098-fa509ba4c205", "source": "Superteam Earn", "title": "Explain Defunds Finance", "reward": "$500 USDC", "reward_usd": 500, "deadline": "2026-05-22T02:59:59.000Z", "url": "https://superteam.fun/earn/listing/explain-defunds-finance", "sponsor": "Defunds Finance", "type": "bounty", "category": "dev"}, {"id": "superteam-5e967209-315f-4aed-92bc-d4594fab30a5", "source": "Superteam Earn", "title": "Solana Consumer Day - Best Consumer Insights Thread", "reward": "$300 USDC", "reward_usd": 300, "deadline": "2026-05-23T03:59:59.000Z", "url": "https://superteam.fun/earn/listing/solana-consumer-day-best-consumer-insights-thread", "sponsor": "Superteam Black", "type": "bounty", "category": "dev"}, {"id": "superteam-2cedd02a-27cc-46c1-b1e7-01c318a21ec6", "source": "Superteam Earn", "title": "Create Your Own Currency on Flipcash", "reward": "$2,250 USDC", "reward_usd": 2250, "deadline": "2026-05-23T03:59:59.999Z", "url": "https://superteam.fun/earn/listing/create-your-own-currency-on-flipcash", "sponsor": "Flipcash", "type": "bounty", "category": "dev"}, {"id": "superteam-e72c3ce3-0787-497a-b121-72685485f428", "source": "Superteam Earn", "title": "Write a Twitter thread on Raze", "reward": "$180 USDC", "reward_usd": 180, "deadline": "2026-05-24T15:59:59.000Z", "url": "https://superteam.fun/earn/listing/write-a-twitter-thread-on-raze", "sponsor": "Raze", "type": "bounty", "category": "dev"}, {"id": "superteam-87217b1a-eaf3-4923-b0c3-9f71febe9681", "source": "Superteam Earn", "title": "Write Engaging Twitter Thread on CoinEx Earn for Staking Rewards", "reward": "$500 USDC", "reward_usd": 500, "deadline": "2026-05-25T18:29:59.000Z", "url": "https://superteam.fun/earn/listing/write-engaging-twitter-thread-on-coinex-earn-for-staking-rewards", "sponsor": "CoinEx", "type": "bounty", "category": "dev"}, {"id": "superteam-08eeeab8-c37b-434a-a55a-96a6b1498037", "source": "Superteam Earn", "title": "Write a Twitter Thread on Kimia Protocol", "reward": "$110 USDC", "reward_usd": 110, "deadline": "2026-05-26T18:29:59.000Z", "url": "https://superteam.fun/earn/listing/write-a-twitter-thread-on-kimia-protocol", "sponsor": "Kimia", "type": "bounty", "category": "dev"}, {"id": "superteam-66842d34-5ed4-474f-9844-dbbcfcad7ad3", "source": "Superteam Earn", "title": "Autonomous Agent Bounty: OOBE × Ace Data Cloud", "reward": "$2,400 USDC", "reward_usd": 2400, "deadline": "2026-06-03T21:59:59.999Z", "url": "https://superteam.fun/earn/listing/autonomous-agent-bounty-oobe-ace-data-cloud", "sponsor": "OOBE Protocol", "type": "bounty", "category": "dev"}, {"id": "superteam-39043ed9-96aa-4d3a-b800-a338bf3319dd", "source": "Superteam Earn", "title": "Stake $GMYLD  & Play PumpCat.FUN - Get Paid Up to $100 for Honest Feedback", "reward": "$2,000 USDC", "reward_usd": 2000, "deadline": "2026-06-10T20:59:59.000Z", "url": "https://superteam.fun/earn/listing/stake-dollargmyld-and-play-pumpcatfun-get-paid-up-to-dollar100-for-honest-feedback-1", "sponsor": "Gamified Yield Protocol", "type": "bounty", "category": "dev"}, {"id": "immunefi-layerzero", "source": "Immunefi", "title": "LayerZero", "reward": "$15,000,000 max", "reward_usd": 15000000, "deadline": "", "url": "https://immunefi.com/bug-bounty/layerzero/", "sponsor": "LayerZero", "type": "bug-bounty", "category": "smart-contract"}, {"id": "immunefi-sky", "source": "Immunefi", "title": "Sky", "reward": "$10,000,000 max", "reward_usd": 10000000, "deadline": "", "url": "https://immunefi.com/bug-bounty/sky/", "sponsor": "Sky", "type": "bug-bounty", "category": "smart-contract"}, {"id": "immunefi-stargate", "source": "Immunefi", "title": "Stargate", "reward": "$10,000,000 max", "reward_usd": 10000000, "deadline": "", "url": "https://immunefi.com/bug-bounty/stargate/", "sponsor": "Stargate", "type": "bug-bounty", "category": "smart-contract"}, {"id": "immunefi-usdt0", "source": "Immunefi", "title": "USDT0", "reward": "$6,000,000 max", "reward_usd": 6000000, "deadline": "", "url": "https://immunefi.com/bug-bounty/usdt0/", "sponsor": "USDT0", "type": "bug-bounty", "category": "smart-contract"}, {"id": "immunefi-sparklend", "source": "Immunefi", "title": "Spark", "reward": "$5,000,000 max", "reward_usd": 5000000, "deadline": "", "url": "https://immunefi.com/bug-bounty/sparklend/", "sponsor": "Spark", "type": "bug-bounty", "category": "smart-contract"}, {"id": "immunefi-gmx", "source": "Immunefi", "title": "GMX", "reward": "$5,000,000 max", "reward_usd": 5000000, "deadline": "", "url": "https://immunefi.com/bug-bounty/gmx/", "sponsor": "GMX", "type": "bug-bounty", "category": "smart-contract"}, {"id": "immunefi-olympus", "source": "Immunefi", "title": "Olympus", "reward": "$3,333,333 max", "reward_usd": 3333333, "deadline": "", "url": "https://immunefi.com/bug-bounty/olympus/", "sponsor": "Olympus", "type": "bug-bounty", "category": "smart-contract"}, {"id": "immunefi-chainlink", "source": "Immunefi", "title": "Chainlink", "reward": "$3,000,000 max", "reward_usd": 3000000, "deadline": "", "url": "https://immunefi.com/bug-bounty/chainlink/", "sponsor": "Chainlink", "type": "bug-bounty", "category": "smart-contract"}, {"id": "immunefi-ethena", "source": "Immunefi", "title": "Ethena", "reward": "$3,000,000 max", "reward_usd": 3000000, "deadline": "", "url": "https://immunefi.com/bug-bounty/ethena/", "sponsor": "Ethena", "type": "bug-bounty", "category": "smart-contract"}, {"id": "immunefi-hyperlane", "source": "Immunefi", "title": "Hyperlane", "reward": "$2,500,000 max", "reward_usd": 2500000, "deadline": "", "url": "https://immunefi.com/bug-bounty/hyperlane/", "sponsor": "Hyperlane", "type": "bug-bounty", "category": "smart-contract"}, {"id": "immunefi-optimism", "source": "Immunefi", "title": "Optimism", "reward": "$2,000,042 max", "reward_usd": 2000042, "deadline": "", "url": "https://immunefi.com/bug-bounty/optimism/", "sponsor": "Optimism", "type": "bug-bounty", "category": "smart-contract"}, {"id": "immunefi-lido", "source": "Immunefi", "title": "Lido", "reward": "$2,000,000 max", "reward_usd": 2000000, "deadline": "", "url": "https://immunefi.com/bug-bounty/lido/", "sponsor": "Lido", "type": "bug-bounty", "category": "smart-contract"}, {"id": "immunefi-lido-v3-bug-bounty-competition", "source": "Immunefi", "title": "Bug Bounty Comp | Lido V3", "reward": "$2,000,000 max", "reward_usd": 2000000, "deadline": "", "url": "https://immunefi.com/bug-bounty/lido-v3-bug-bounty-competition/", "sponsor": "Bug Bounty Comp | Lido V3", "type": "bug-bounty", "category": "smart-contract"}, {"id": "immunefi-rhinofi", "source": "Immunefi", "title": "Rhino.fi", "reward": "$2,000,000 max", "reward_usd": 2000000, "deadline": "", "url": "https://immunefi.com/bug-bounty/rhinofi/", "sponsor": "Rhino.fi", "type": "bug-bounty", "category": "smart-contract"}, {"id": "immunefi-lido-bug-bounty-competition", "source": "Immunefi", "title": "Bug Bounty Comp | Lido: Dual Governance", "reward": "$2,000,000 max", "reward_usd": 2000000, "deadline": "", "url": "https://immunefi.com/bug-bounty/lido-bug-bounty-competition/", "sponsor": "Bug Bounty Comp | Lido: Dual Governance", "type": "bug-bounty", "category": "smart-contract"}, {"id": "immunefi-arbitrum", "source": "Immunefi", "title": "Arbitrum", "reward": "$2,000,000 max", "reward_usd": 2000000, "deadline": "", "url": "https://immunefi.com/bug-bounty/arbitrum/", "sponsor": "Arbitrum", "type": "bug-bounty", "category": "smart-contract"}, {"id": "immunefi-gnosischain", "source": "Immunefi", "title": "Gnosis Chain", "reward": "$2,000,000 max", "reward_usd": 2000000, "deadline": "", "url": "https://immunefi.com/bug-bounty/gnosischain/", "sponsor": "Gnosis Chain", "type": "bug-bounty", "category": "smart-contract"}, {"id": "immunefi-celer", "source": "Immunefi", "title": "Celer", "reward": "$2,000,000 max", "reward_usd": 2000000, "deadline": "", "url": "https://immunefi.com/bug-bounty/celer/", "sponsor": "Celer", "type": "bug-bounty", "category": "smart-contract"}, {"id": "immunefi-kamino", "source": "Immunefi", "title": "Kamino", "reward": "$1,500,000 max", "reward_usd": 1500000, "deadline": "", "url": "https://immunefi.com/bug-bounty/kamino/", "sponsor": "Kamino", "type": "bug-bounty", "category": "smart-contract"}, {"id": "immunefi-ethereum-protocol-attackathon", "source": "Immunefi", "title": "Attackathon | Ethereum Protocol", "reward": "$1,500,000 max", "reward_usd": 1500000, "deadline": "", "url": "https://immunefi.com/bug-bounty/ethereum-protocol-attackathon/", "sponsor": "Attackathon | Ethereum Protocol", "type": "bug-bounty", "category": "smart-contract"}];
+let bookmarks = JSON.parse(localStorage.getItem('bounty-bookmarks') || '[]');
+let currentTab = 'all';
+let currentSort = 'reward-desc';
+function saveBookmarks() { localStorage.setItem('bounty-bookmarks', JSON.stringify(bookmarks)); }
+function toggleBookmark(e, id) {
+  e.preventDefault(); e.stopPropagation();
+  const idx = bookmarks.indexOf(id);
+  if (idx >= 0) bookmarks.splice(idx, 1); else bookmarks.push(id);
+  saveBookmarks(); renderCurrentTab();
+}
+function sortBounties(items) {
+  const s = [...items];
+  switch(currentSort) {
+    case 'reward-desc': return s.sort((a,b) => (b.reward_usd||0) - (a.reward_usd||0));
+    case 'reward-asc': return s.sort((a,b) => (a.reward_usd||0) - (b.reward_usd||0));
+    case 'deadline': return s.sort((a,b) => { if (!a.deadline) return 1; if (!b.deadline) return -1; return new Date(a.deadline) - new Date(b.deadline); });
+    case 'source': return s.sort((a,b) => a.source.localeCompare(b.source));
+    default: return s;
+  }
+}
+function renderCards(items) {
+  if (!items.length) return '<div class="empty"><div class="empty-icon">No bounties</div></div>';
+  let h = '<div class="grid">';
+  items.forEach(item => {
+    const tc = {"content":"tag-content","dev":"tag-dev","smart-contract":"tag-sc"}[item.category] || "tag-default";
+    let dl = '';
+    if (item.deadline) { try { const days = Math.ceil((new Date(item.deadline) - new Date()) / 86400000); dl = days >= 0 ? '<span class="deadline-badge">'+days+'d</span>' : '<span class="deadline-badge expired">Exp</span>'; } catch(e) {} }
+    const saved = bookmarks.includes(item.id);
+    h += '<a class="card" href="'+item.url+'" target="_blank"><button class="bookmark-btn '+(saved?'saved':'')+'" onclick="toggleBookmark(event,\''+item.id+'\')">'+( saved?'\u2605':'\u2606')+'</button><div class="card-title">'+item.title.slice(0,60)+'</div><div class="card-meta"><span class="reward">'+item.reward+'</span>'+dl+'</div><div class="card-footer"><span class="tag '+tc+'">'+item.type+'</span>'+(item.sponsor?'<span class="source-label">'+item.sponsor+'</span>':'')+'<span class="source-label">'+item.source+'</span></div></a>';
+  });
+  return h + '</div>';
+}
+function renderCurrentTab() { switchTab(currentTab); }
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.topbar-nav button').forEach(t => t.classList.remove('active'));
+  if (event && event.target && event.target.tagName === 'BUTTON') event.target.classList.add('active');
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  let panel, items;
+  if (tab === 'search') { document.getElementById('panel-search').classList.add('active'); return; }
+  else if (tab === 'bookmarks') { panel = document.getElementById('panel-bookmarks'); items = bounties.filter(b => bookmarks.includes(b.id)); }
+  else if (tab === 'all') { panel = document.getElementById('panel-all'); items = bounties; }
+  else { panel = document.getElementById('panel-'+tab); const m={'superteam':'Superteam Earn','code4rena':'Code4rena','immunefi':'Immunefi','sherlock':'Sherlock'}; items = bounties.filter(b => b.source === m[tab]); }
+  panel.innerHTML = renderCards(sortBounties(items));
+  panel.classList.add('active');
+}
+function applySort() { currentSort = document.getElementById('sort-select').value; renderCurrentTab(); }
+const CHAT_API = '/api/v1/chat/completions';
+let chatSessionId = 'bounty-' + Date.now();
+let chatHistory = [];
+let chatOpen = false;
+function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 100) + 'px'; }
+function addMsg(role, content) {
+  const panel = document.getElementById('chat-messages-panel');
+  if (!chatOpen) { chatOpen = true; panel.classList.add('open'); }
+  const msg = document.createElement('div');
+  msg.className = 'chat-msg chat-' + role;
+  msg.innerHTML = content.replace(/\n/g, '<br>');
+  panel.appendChild(msg);
+  panel.scrollTop = panel.scrollHeight;
+}
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = ''; input.style.height = 'auto';
+  addMsg('user', text);
+  const sys = 'You are a bounty hunting assistant. Analyze bounties, suggest strategies. Be concise. Respond in Bahasa Indonesia.\nActive bounties:\n' + bounties.slice(0,10).map(b => b.title+' ('+b.source+') - '+b.reward).join('\n');
+  chatHistory.push({ role: 'user', content: text });
+  addMsg('assistant', '<span class="typing">thinking...</span>');
+  try {
+    const res = await fetch(CHAT_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Hermes-Session-Id': chatSessionId },
+      body: JSON.stringify({ model: 'hermes-agent', messages: [{role:'system',content:sys}, ...chatHistory], stream: false })
+    });
+    const data = await res.json();
+    const reply = data.choices?.[0]?.message?.content || data.error || 'No response';
+    const p = document.getElementById('chat-messages-panel');
+    p.removeChild(p.lastChild);
+    chatHistory.push({ role: 'assistant', content: reply });
+    addMsg('assistant', reply);
+  } catch(e) {
+    const p = document.getElementById('chat-messages-panel');
+    p.removeChild(p.lastChild);
+    addMsg('assistant', 'Cannot reach Hermes. Run: python3 serve.py');
+  }
+}
+function chatKeydown(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } }
+switchTab('all');
+</script>
+</body>
+</html>
