@@ -1,17 +1,96 @@
 # Bounty Hunter
 
-Local dashboard untuk tracking, analyzing, dan managing Web3 bounties dari berbagai platform. AI-powered analysis membantu menentukan bounty mana yang worth dikerjakan berdasarkan skill profile.
+AI-driven local dashboard for Web3 bounty hunting. Analyze, strategize, and execute bounties with an AI co-pilot that assists at every step — from discovery to submission.
+
+## What is this?
+
+Bounty Hunter is a personal command center for Web3 bounty hunters. Instead of juggling browser tabs, spreadsheets, and chat windows, you get a single dashboard that:
+
+- **Aggregates bounties** from multiple platforms (Superteam Earn, Code4rena, Immunefi, Sherlock)
+- **AI-analyzes each bounty** against your skill profile — scoring difficulty, match, and strategy
+- **Guides you through execution** with a step-by-step workspace powered by AI co-pilot
+- **Tracks progress** via Kanban board with automatic status transitions
+
+## AI Co-Pilot
+
+The core differentiator. Every bounty gets an AI workspace with:
+
+| Step | What the AI does |
+|------|-----------------|
+| **Research** | Scrapes bounty page, structures requirements, identifies deliverables |
+| **Generate** | Produces execution checklist based on research + your profile |
+| **Execute** | Interactive checklist + chat — ask questions, get guidance in context |
+| **Finalize** | Review, polish, prepare submission |
+
+The co-pilot uses [Hermes Agent](https://github.com/nousresearch/hermes-agent) as its brain — each bounty gets an isolated AI session with full context of that specific bounty. You stay in control: AI assists, you decide.
+
+### Model Routing
+
+Supports any OpenAI-compatible endpoint. Configure multiple backends:
+
+- **Hermes Gateway** — local agent server for complex reasoning
+- **9Router** — multi-provider gateway (Claude, GPT, DeepSeek, Kimi, etc.)
+- **Any OpenAI-compatible API** — bring your own endpoint
+
+## Features
+
+- **Universal Bounty Intake** — paste any URL (Gitcoin, Discord, blog post) → AI extracts and analyzes
+- **Smart Kanban** — auto-moves cards as you progress through workspace steps
+- **X Search** — 30+ curated search queries to discover bounties on X/Twitter
+- **Multi-model chat** — pick the right model for each task
+- **Profile-aware scoring** — AI knows your skills and recommends accordingly
+- **Fully local** — your data stays on your machine, no cloud dependency
 
 ## Stack
 
 | Layer | Tech |
 |-------|------|
-| Frontend | React 19 + TypeScript 6 + Vite 8 + Zustand 5 |
-| UI | Custom CSS (no framework), @dnd-kit for Kanban drag-drop |
-| Backend | Python `serve.py` (stdlib http.server) port 3333 |
-| Database | SQLite (WAL mode) via `db.py` |
-| AI | Multi-model via 9Router (Claude, DeepSeek, GPT, Kimi, MiniMax) |
-| Content | react-markdown for rendering |
+| Frontend | React 19 + TypeScript + Vite + Zustand |
+| UI | Custom CSS, @dnd-kit for Kanban drag-drop |
+| Backend | Python `serve.py` (stdlib http.server) |
+| Database | SQLite (WAL mode) |
+| AI | Multi-model via configurable OpenAI-compatible endpoints |
+
+## Quick Start
+
+### Prerequisites
+
+- Python 3.9+
+- Node.js 20+
+- An OpenAI-compatible LLM endpoint (local or remote)
+
+### Setup
+
+```bash
+git clone https://github.com/adryndian/bounty-hunter.git
+cd bounty-hunter
+
+# Configure your AI endpoints
+cp .env.example .env
+# Edit .env with your API URLs and keys
+
+# Install frontend
+cd app && npm install --include=dev && cd ..
+
+# Start (both backend + frontend)
+./start.sh
+# Or manually:
+# Terminal 1: python3 serve.py
+# Terminal 2: cd app && npm run dev
+```
+
+Open `http://localhost:5173`
+
+### Environment Variables
+
+```env
+LLM_API_URL=http://127.0.0.1:8642      # Primary LLM endpoint
+LLM_API_KEY=your-key                     # API key for primary
+LLM_ROUTER_URL=http://127.0.0.1:20128   # Secondary router (optional)
+LLM_ROUTER_KEY=your-router-key           # Router API key
+LLM_DEFAULT_MODEL=your-model-name        # Default model for analysis
+API_SERVER_KEY=your-hermes-key           # Hermes Agent API key (for co-pilot)
+```
 
 ## Architecture
 
@@ -24,158 +103,29 @@ Local dashboard untuk tracking, analyzing, dan managing Web3 bounties dari berba
                        ▼
 ┌─────────────────────────────────────────────────────┐
 │  serve.py (localhost:3333)                           │
-│  - Static file serving                              │
-│  - CORS proxy to AI backends                        │
-│  - DB endpoints (CRUD)                              │
-│  - Bounty detail scraping (Jina → trafilatura → BS4)│
-│  - Draft pipeline (research → generate → verify)    │
+│  - AI co-pilot endpoints (research, generate, chat) │
+│  - DB CRUD + status tracking                        │
+│  - URL scraping (Jina → BS4 fallback)               │
+│  - Model routing (multi-backend)                    │
 └────────┬────────────────────┬───────────────────────┘
          │                    │
          ▼                    ▼
 ┌─────────────────┐  ┌────────────────────┐
 │  SQLite DB      │  │  AI Backends       │
-│  bounty_hunter  │  │  - Hermes (8642)   │
-│  .db            │  │  - 9Router (20128) │
+│  (local file)   │  │  (configurable)    │
 └─────────────────┘  └────────────────────┘
 ```
 
-## Features
-
-### Bounty Grid (Tab: All / per-source)
-- Card-based grid view semua active bounties
-- Sort by reward, deadline, source
-- Bookmark bounties
-- Quick status assignment (interested → applied → submitted)
-- Per-card AI analysis trigger
-
-### AI Analysis
-- Deep analyze: scrape bounty page → AI generates match_score, difficulty, strategy, verdict
-- Verdict: `recommended` / `possible` / `skip`
-- Cross-bounty context (learns from previous analyses)
-- User profile-aware scoring
-
-### Draft Workspace (Tab: Draft)
-- 5-step pipeline: Research → Generate → Review → Finalize → Submit
-- **Research**: Scrape bounty detail + AI structures requirements/deliverables
-- **Generate**: AI writes submission draft based on research + profile
-- **Review**: AI verifies draft against requirements (checklist + score)
-- **Finalize**: Manual edit + polish
-- **Submit**: Copy final text, mark as submitted
-
-### Kanban Board (Tab: Kanban)
-- Drag-and-drop columns: Interested → Applied → Submitted
-- Bottom row: Won / Lost / Archived
-- Auto-sync with Draft panel status changes
-- Status history tracking in DB
-
-### AI Chat
-- Sidebar chat with bounty context
-- Multi-model selection (Claude, DeepSeek, GPT, Kimi, MiniMax)
-- Attach specific bounty for focused discussion
-- Web3 expert system prompt
-
-### User Profile
-- Skills, experience level, languages, focus areas
-- Persisted in DB, used by all AI prompts for personalized analysis
-
-## Data Sources
-
-Bounties loaded from `bounties.json` (fetched externally). Sources:
-- **Superteam Earn** — Solana ecosystem (content, dev, design)
-- **Code4rena** — Smart contract audit contests
-- **Immunefi** — Security/bug bounties
-- **Sherlock** — Audit contests
-
-## Quick Start
-
-```bash
-# Terminal 1: Backend
-cd ~/Desktop/bounty-hunter
-python3 serve.py
-# → http://localhost:3333
-
-# Terminal 2: Frontend
-cd ~/Desktop/bounty-hunter/app
-npm run dev
-# → http://localhost:5173
-```
-
-## API Endpoints
-
-### DB Endpoints (serve.py)
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/bounties` | All active bounties from DB |
-| POST | `/api/bounties/refresh` | Re-fetch bounties from sources |
-| GET | `/api/fetch-bounty-detail?url=` | Scrape bounty page content |
-| GET | `/db/stats` | Dashboard statistics |
-| GET | `/db/context` | AI context from learnings |
-| GET | `/db/statuses` | All kanban statuses |
-| GET | `/db/bookmarks` | All bookmarked bounty IDs |
-| GET | `/db/history/:id` | Status history for a bounty |
-| GET | `/db/user-profile` | User profile data |
-| POST | `/db/status` | Set bounty kanban status |
-| POST | `/db/learning` | Record outcome/learning |
-| POST | `/db/bookmark` | Toggle bookmark |
-| POST | `/db/user-profile` | Save user profile |
-
-### AI Proxy Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/v1/chat/completions` | Proxied to Hermes/9Router |
-| POST | `/api/draft-research` | Step 1: Research bounty |
-| POST | `/api/draft-generate` | Step 2: Generate submission |
-| POST | `/api/draft-verify` | Step 3: Verify draft quality |
-
-### Model Routing (serve.py)
-
-| Prefix | Route To | Auth |
-|--------|----------|------|
-| `hermes:*` | Hermes Gateway :8642 (strip prefix) | None |
-| `cx/*` | Hermes Gateway :8642 (as-is) | None |
-| `kr/*` | 9Router :20128 (as-is) | Bearer key |
-| `fireworks/*` | 9Router :20128 (as-is) | Bearer key |
-
-## Database Schema
-
-```sql
-bounties        — Raw bounty data (id, source, title, reward, deadline, url, sponsor, type, category)
-analysis        — AI analysis per bounty (match_score, difficulty, verdict, strategy, skills_needed)
-bounty_status   — Current kanban status per bounty
-status_history  — Full status change log
-learnings       — Outcome tracking (won/lost/skipped + lessons learned)
-bookmarks       — Bookmarked bounty IDs
-user_profile    — Single-row JSON blob (skills, experience, focus areas)
-```
-
-## File Structure
+## Kanban Flow
 
 ```
-bounty-hunter/
-├── serve.py              # Backend server (port 3333)
-├── db.py                 # SQLite schema + helpers
-├── bounty_hunter.db      # SQLite database
-├── bounties.json         # Current bounties data
-├── bounties_prev.json    # Previous fetch (for diff)
-├── analysis.json         # Cached analysis results
-├── index.html            # Entry point
-├── app/
-│   ├── package.json
-│   ├── src/
-│   │   ├── types/index.ts        # All TypeScript interfaces
-│   │   ├── stores/bountyStore.ts # Zustand state management
-│   │   ├── hooks/useApi.ts       # API calls + AI integration
-│   │   ├── components/
-│   │   │   ├── BountyGrid.tsx    # Main grid view
-│   │   │   ├── BountyCard.tsx    # Individual bounty card
-│   │   │   ├── KanbanBoard.tsx   # Drag-drop kanban
-│   │   │   ├── DraftPanel.tsx    # 5-step draft workspace
-│   │   │   ├── Topbar.tsx        # Navigation + tabs
-│   │   │   ├── UserProfileModal.tsx
-│   │   │   └── Tooltip.tsx
-│   │   └── styles/index.css      # All styles
-│   └── tsconfig*.json
-└── graphify-out/                  # Knowledge graph (auto-generated)
+Draft → Todo → In Progress → Ready → Submitted → Won
+                                                  └→ Lost
+                                                  └→ Archived
 ```
+
+Status transitions happen automatically as you progress through workspace steps, or manually via drag-and-drop.
+
+## License
+
+MIT

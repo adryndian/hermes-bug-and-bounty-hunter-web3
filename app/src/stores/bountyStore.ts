@@ -39,6 +39,7 @@ interface BountyStore {
   detachBounty: () => void
 
   // Draft
+  setDrafts: (drafts: Record<string, Draft>) => void
   setDraft: (id: string, draft: Draft) => void
   toggleDraftTask: (id: string, idx: number) => void
   removeDraft: (id: string) => void
@@ -174,6 +175,12 @@ export const useStore = create<BountyStore>()(persist((set) => ({
   detachBounty: () => set({ attachedBounty: null }),
 
   // Draft
+  setDrafts: (drafts) => set((s) => {
+    const next = { ...s.drafts, ...drafts }
+    localStorage.setItem('bounty-drafts', JSON.stringify(next))
+    return { drafts: next }
+  }),
+
   setDraft: (id, draft) => set((s) => {
     const next = { ...s.drafts, [id]: draft }
     localStorage.setItem('bounty-drafts', JSON.stringify(next))

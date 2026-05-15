@@ -1,14 +1,14 @@
 import { useStore } from '../stores/bountyStore'
-import type { Bounty, ChatMessage, ChatModel, DeepAnalysis, UserProfile } from '../types'
+import type { Bounty, ChatMessage, ChatModel, DeepAnalysis, KanbanStatus, UserProfile } from '../types'
 
 export function useApi() {
   const store = useStore()
 
   const loadBounties = async () => {
     try {
-      const res = await fetch('/bounties.json')
+      const res = await fetch('/api/bounties')
       const data = await res.json()
-      store.setBounties(data.bounties || [])
+      store.setBounties(data || [])
       return data
     } catch (e) {
       console.error('Failed to load bounties:', e)
@@ -18,7 +18,7 @@ export function useApi() {
 
   const loadAnalysis = async () => {
     try {
-      const res = await fetch('/analysis.json')
+      const res = await fetch('/db/analysis')
       const data = await res.json()
       store.setAnalysis(data || {})
       return data
@@ -32,8 +32,14 @@ export function useApi() {
     try {
       const res = await fetch('/db/statuses')
       const data = await res.json()
-      store.setStatuses(data || {})
-      return data
+      // Filter out invalid entries — only keep valid kanban statuses
+      const validStatuses = ['draft', 'todo', 'in_progress', 'ready', 'submitted', 'won', 'lost', 'archived']
+      const filtered: Record<string, KanbanStatus> = {}
+      for (const [id, status] of Object.entries(data || {})) {
+        if (validStatuses.includes(status as string)) filtered[id] = status as KanbanStatus
+      }
+      store.setStatuses(filtered)
+      return filtered
     } catch (e) {
       console.error('Failed to load statuses:', e)
       return null
@@ -253,9 +259,11 @@ Be specific and realistic. Tasks should be concrete action steps for THIS bounty
       loadStatuses(),
       loadBookmarks(),
     ])
+    // Use getState() for fresh state after async operations
+    const liveState = useStore.getState()
     // Restore analysis from persisted drafts (survives refresh)
     const drafts = JSON.parse(localStorage.getItem('bounty-drafts') || '{}')
-    const currentAnalysis = store.analysis
+    const currentAnalysis = liveState.analysis
     const merged = { ...currentAnalysis }
     for (const [id, draft] of Object.entries(drafts) as [string, any][]) {
       if (draft.match_score !== undefined && !merged[id]) {
@@ -271,18 +279,18 @@ Be specific and realistic. Tasks should be concrete action steps for THIS bounty
       }
     }
     if (Object.keys(merged).length > Object.keys(currentAnalysis).length) {
-      store.setAnalysis(merged)
+      liveState.setAnalysis(merged)
     }
 
-    // Hydrate workspace drafts from DB analysis for bounties with status
-    // This ensures workspace survives page refresh
-    const statuses = store.statuses
-    const analysis = store.analysis
-    const existingDrafts = store.drafts
-    for (const [bountyId, status] of Object.entries(statuses)) {
-      if (!existingDrafts[bountyId] && analysis[bountyId]) {
-        const a = analysis[bountyId] as any
-        store.setDraft(bountyId, {
+    // Hydrate workspace drafts from DB analysis (bulk)
+    // This ensures workspace shows all analyzed bounties
+    const freshState = useStore.getState()
+    const analysis = freshState.analysis
+    const existingDrafts = freshState.drafts
+    const newDrafts: Record<string, any> = {}
+    for (const [bountyId, a] of Object.entries(analysis) as [string, any][]) {
+      if (!existingDrafts[bountyId]) {
+        newDrafts[bountyId] = {
           match_score: a.match_score,
           difficulty: a.difficulty,
           time_estimate: a.time_estimate,
@@ -291,8 +299,11 @@ Be specific and realistic. Tasks should be concrete action steps for THIS bounty
           skills_needed: a.skills_needed,
           verdict: a.verdict,
           tasks: a.tasks || [],
-        })
+        }
       }
+    }
+    if (Object.keys(newDrafts).length > 0) {
+      freshState.setDrafts(newDrafts)
     }
   }
 

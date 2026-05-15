@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import Markdown from 'react-markdown'
+import { useStore } from '../stores/bountyStore'
 import type { DraftWorkspace } from '../types'
 
 interface Props {
@@ -55,6 +56,11 @@ export default function ExecuteStep({ bountyId, onComplete }: Props) {
       const data = await res.json()
       if (data.ok && data.checklist) {
         setChecklist(data.checklist)
+        // Auto-move kanban: execute started → in_progress
+        const { statuses, setStatus } = useStore.getState()
+        if (statuses[bountyId] === 'todo' || statuses[bountyId] === 'draft') {
+          setStatus(bountyId, 'in_progress')
+        }
       }
     } catch (e) {
       console.error('Checklist generation failed:', e)

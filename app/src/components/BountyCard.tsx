@@ -37,6 +37,8 @@ export default function BountyCard({ bounty }: Props) {
       const result = await deepAnalyze(bounty)
       const draft = { ...result, checked: new Array(result.tasks?.length || 0).fill(false) }
       setDraft(bounty.id, draft)
+      // Auto-set status to 'draft' so it appears in Kanban
+      setStatus(bounty.id, 'draft')
       // Auto-init workspace and switch to Draft tab
       initWorkspace(bounty.id)
       setTab('draft')

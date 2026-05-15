@@ -149,6 +149,28 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(json.dumps(result).encode())
+        elif self.path == "/db/analysis":
+            # Return all analysis from DB (keyed by bounty_id)
+            from db import get_db, init_db
+            init_db()
+            conn = get_db()
+            rows = conn.execute("SELECT * FROM analysis").fetchall()
+            conn.close()
+            result = {}
+            for r in rows:
+                result[r["bounty_id"]] = {
+                    "match_score": r["match_score"],
+                    "difficulty": r["difficulty"],
+                    "time_estimate": r["time_estimate"],
+                    "summary": r["summary"],
+                    "strategy": r["strategy"],
+                    "skills_needed": r["skills_needed"],
+                    "verdict": r["verdict"],
+                }
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(result).encode())
         elif self.path == "/db/bookmarks":
             # Return all bookmarks
             from db import get_db, init_db
@@ -347,6 +369,207 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps({"ok": True, "count": count}).encode())
             except Exception as e:
                 self.send_response(500)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"ok": False, "error": str(e)}).encode())
+            return
+
+        if self.path == "/api/analyze-url":
+            # Analyze a URL (X tweet, bounty page, any link) and create bounty entry
+            try:
+                data = json.loads(body)
+                url = data.get("url", "").strip()
+                if not url:
+                    self.send_response(400)
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"ok": False, "error": "Missing url"}).encode())
+                    return
+
+                # Step 1: Fetch content from URL
+                content = None
+                title = ""
+                try:
+                    import requests as req
+                    jina_url = f"https://r.jina.ai/{url}"
+                    r = req.get(jina_url, timeout=20, headers={"User-Agent": "Mozilla/5.0", "Accept": "text/plain"})
+                    if r.status_code == 200 and len(r.text) > 200:
+                        raw = r.text
+                        for line in raw.splitlines()[:5]:
+                            if line.startswith("Title:"):
+                                title = line.replace("Title:", "").strip()
+                                break
+                        lines = raw.splitlines()
+                        body_start = 0
+                        for i, line in enumerate(lines):
+                            if line.startswith("Markdown Content:"):
+                                body_start = i + 1
+                                break
+                        content = "\n".join(lines[body_start:]).strip()
+                        import re
+                        clean_lines = []
+                        for line in content.splitlines():
+                            line = line.strip()
+                            if not line: continue
+                            if line.startswith("![") or line.startswith("[!["): continue
+                            if re.match(r'^\[.*\]\(https?://.*\)$', line): continue
+                            if len(line) < 8: continue
+                            clean_lines.append(line)
+                        content = "\n".join(clean_lines)
+                except Exception:
+                    pass
+                if not content:
+                    try:
+                        import requests as req
+                        resp = req.get(url, timeout=15, headers={"User-Agent": "Mozilla/5.0"})
+                        resp.raise_for_status()
+                        from bs4 import BeautifulSoup
+                        soup = BeautifulSoup(resp.text, "html.parser")
+                        for tag in soup(["script", "style", "nav", "footer", "header", "aside"]):
+                            tag.decompose()
+                        if not title:
+                            title_tag = soup.find("title")
+                            title = title_tag.get_text(strip=True) if title_tag else ""
+                        content = soup.get_text(separator="\n", strip=True)
+                    except Exception as e:
+                        self.send_response(200)
+                        self.send_header("Content-Type", "application/json")
+                        self.end_headers()
+                        self.wfile.write(json.dumps({"ok": False, "error": f"Failed to fetch URL: {e}"}).encode())
+                        return
+                content = (content or "")[:5000]
+
+                # Step 2: Detect source from URL
+                source = "External"
+                if "x.com" in url or "twitter.com" in url:
+                    source = "X (Twitter)"
+                elif "superteam" in url:
+                    source = "Superteam Earn"
+                elif "immunefi" in url:
+                    source = "Immunefi"
+                elif "code4rena" in url:
+                    source = "Code4rena"
+                elif "sherlock" in url:
+                    source = "Sherlock"
+                elif "gitcoin" in url:
+                    source = "Gitcoin"
+                elif "dework" in url:
+                    source = "Dework"
+                elif "github.com" in url:
+                    source = "GitHub"
+
+                # Step 3: AI analysis
+                from db import get_db, init_db
+                init_db()
+                conn = get_db()
+                # Load user profile for context
+                profile_row = conn.execute("SELECT data FROM user_profile ORDER BY id DESC LIMIT 1").fetchone()
+                user_profile = json.loads(profile_row[0]) if profile_row else {}
+                skills_text = ", ".join(user_profile.get("skills", ["TypeScript", "React", "Content Writing"]))
+
+                prompt = f"""Analyze this bounty/opportunity from a URL. Extract key information and provide assessment.
+
+URL: {url}
+SOURCE: {source}
+TITLE: {title}
+
+PAGE CONTENT:
+{content}
+
+USER SKILLS: {skills_text}
+
+Respond in JSON format:
+{{
+  "title": "bounty title (concise, max 80 chars)",
+  "reward": "reward amount as string (e.g. '$5,000 USDC', '$10,000 max', 'TBD')",
+  "reward_usd": estimated_reward_number_or_0,
+  "deadline": "ISO date string or empty",
+  "type": "bounty|bug-bounty|audit|content|hackathon|grant",
+  "category": "dev|content|smart-contract|design",
+  "sponsor": "sponsoring org name",
+  "match_score": 1-10,
+  "difficulty": "easy|medium|hard|expert",
+  "time_estimate": "e.g. 2d, 1w, 2w",
+  "summary": "1-2 sentence summary of what's needed",
+  "strategy": "recommended approach in 2-3 sentences",
+  "skills_needed": ["skill1", "skill2"],
+  "verdict": "recommended|possible|skip",
+  "tasks": ["task1", "task2", "task3"]
+}}
+
+Be accurate. If info is unclear, make reasonable estimates. For X tweets, extract the bounty details from the tweet content."""
+
+                ai_data = llm_call(
+                    [{"role": "user", "content": prompt}],
+                    model=LLM_DEFAULT_MODEL,
+                    max_tokens=1500,
+                    temperature=0.3
+                )
+                ai_text = ai_data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                # Parse JSON from response
+                import re
+                json_match = re.search(r'\{[\s\S]*\}', ai_text)
+                if not json_match:
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"ok": False, "error": "AI failed to return valid analysis"}).encode())
+                    conn.close()
+                    return
+                analysis = json.loads(json_match.group())
+
+                # Step 4: Create bounty entry
+                import hashlib
+                bounty_id = f"url-{hashlib.md5(url.encode()).hexdigest()[:12]}"
+                bounty = {
+                    "id": bounty_id,
+                    "source": source,
+                    "title": analysis.get("title", title or "Untitled Bounty"),
+                    "reward": analysis.get("reward", "TBD"),
+                    "reward_usd": analysis.get("reward_usd", 0),
+                    "deadline": analysis.get("deadline", ""),
+                    "url": url,
+                    "sponsor": analysis.get("sponsor", ""),
+                    "type": analysis.get("type", "bounty"),
+                    "category": analysis.get("category", "dev"),
+                }
+
+                # Step 5: Save to DB
+                conn.execute("""
+                    INSERT OR REPLACE INTO bounties (id, source, title, reward, reward_usd, deadline, url, sponsor, type, category, is_active)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+                """, (bounty["id"], bounty["source"], bounty["title"], bounty["reward"],
+                      bounty["reward_usd"], bounty["deadline"], bounty["url"],
+                      bounty["sponsor"], bounty["type"], bounty["category"]))
+
+                # Save analysis
+                analysis_entry = {
+                    "match_score": analysis.get("match_score", 5),
+                    "difficulty": analysis.get("difficulty", "medium"),
+                    "time_estimate": analysis.get("time_estimate", ""),
+                    "summary": analysis.get("summary", ""),
+                    "strategy": analysis.get("strategy", ""),
+                    "skills_needed": analysis.get("skills_needed", []),
+                    "verdict": analysis.get("verdict", "possible"),
+                    "tasks": analysis.get("tasks", []),
+                }
+                conn.execute("""
+                    INSERT OR REPLACE INTO analysis (bounty_id, match_score, difficulty, time_estimate, summary, strategy, skills_needed, verdict, analyzed_at, model_used)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), ?)
+                """, (bounty_id, analysis_entry["match_score"], analysis_entry["difficulty"],
+                      analysis_entry["time_estimate"], analysis_entry["summary"], analysis_entry["strategy"],
+                      json.dumps(analysis_entry["skills_needed"]), analysis_entry["verdict"], LLM_DEFAULT_MODEL))
+                conn.commit()
+                conn.close()
+
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"ok": True, "bounty": bounty, "analysis": analysis_entry}).encode())
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                self.send_response(200)
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
                 self.wfile.write(json.dumps({"ok": False, "error": str(e)}).encode())
@@ -856,6 +1079,34 @@ Be concise, actionable, and specific to this bounty. Respond in the user's langu
                 conn.execute("""
                     UPDATE workspace_sessions SET resources=?, updated_at=datetime('now') WHERE bounty_id=?
                 """, (json.dumps(resources), bounty_id))
+                conn.commit()
+                conn.close()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"ok": True}).encode())
+            except Exception as e:
+                self.send_response(400)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"ok": False, "error": str(e)}).encode())
+
+        elif self.path == "/api/copilot/notes":
+            # Update notes for a bounty workspace
+            data = json.loads(body)
+            bounty_id = data.get("bounty_id", "")
+            notes_text = data.get("notes", "")
+            try:
+                from db import get_db, init_db
+                init_db()
+                conn = get_db()
+                existing = conn.execute("SELECT 1 FROM workspace_sessions WHERE bounty_id=?", (bounty_id,)).fetchone()
+                if not existing:
+                    conn.execute("INSERT INTO workspace_sessions (bounty_id, session_id, notes) VALUES (?, ?, ?)",
+                                (bounty_id, f"bounty-{bounty_id[:16]}", notes_text))
+                else:
+                    conn.execute("UPDATE workspace_sessions SET notes=?, updated_at=datetime('now') WHERE bounty_id=?",
+                                (notes_text, bounty_id))
                 conn.commit()
                 conn.close()
                 self.send_response(200)

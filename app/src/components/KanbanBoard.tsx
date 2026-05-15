@@ -14,6 +14,7 @@ import { useDroppable } from '@dnd-kit/core'
 import { useDraggable } from '@dnd-kit/core'
 import { useStore } from '../stores/bountyStore'
 import Tooltip from './Tooltip'
+import BountyDetailPanel from './BountyDetailPanel'
 import type { Bounty, KanbanStatus } from '../types'
 
 const COLUMNS: { id: KanbanStatus; label: string }[] = [
@@ -165,6 +166,7 @@ export default function KanbanBoard() {
   const initWorkspace = useStore(s => s.initWorkspace)
   const drafts = useStore(s => s.drafts)
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [detailId, setDetailId] = useState<string | null>(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -193,9 +195,13 @@ export default function KanbanBoard() {
 
     const bountyId = active.id as string
     const targetColumn = over.id as KanbanStatus
+    const currentStatus = statuses[bountyId]
 
-    if ([...COLUMNS, ...BOTTOM_COLUMNS].some(c => c.id === targetColumn)) {
+    if ([...COLUMNS, ...BOTTOM_COLUMNS].some(c => c.id === targetColumn) && currentStatus !== targetColumn) {
       setStatus(bountyId, targetColumn)
+      const bounty = bounties.find(b => b.id === bountyId)
+      const colLabel = [...COLUMNS, ...BOTTOM_COLUMNS].find(c => c.id === targetColumn)?.label
+      showToast(`"${bounty?.title}" → ${colLabel}`, 'info')
     }
   }
 
@@ -225,10 +231,25 @@ export default function KanbanBoard() {
   }
 
   const handleOpenWorkspace = (bountyId: string) => {
-    if (drafts[bountyId] && !drafts[bountyId].workspace) {
+    const store = useStore.getState()
+    // If no draft entry exists, create one from analysis or empty
+    if (!store.drafts[bountyId]) {
+      const anal = store.analysis[bountyId] as any
+      store.setDraft(bountyId, {
+        match_score: anal?.match_score || 0,
+        difficulty: anal?.difficulty || 'unknown',
+        time_estimate: anal?.time_estimate || '',
+        summary: anal?.summary || '',
+        strategy: anal?.strategy || '',
+        skills_needed: anal?.skills_needed || [],
+        verdict: anal?.verdict || 'possible',
+        tasks: anal?.tasks || [],
+      })
+    }
+    if (!store.drafts[bountyId]?.workspace) {
       initWorkspace(bountyId)
     }
-    setTab('draft') // 'draft' is the internal tab id for Workspace
+    setTab('draft')
   }
 
   const activeBounty = activeId ? bounties.find(b => b.id === activeId) : null
@@ -251,7 +272,7 @@ export default function KanbanBoard() {
               key={column.id}
               column={column}
               bounties={getColumnBounties(column.id)}
-              onCardClick={openAnalyzeModal}
+              onCardClick={setDetailId}
               onOpenWorkspace={handleOpenWorkspace}
               onMove={handleMove}
               onArchive={handleArchive}
@@ -267,7 +288,7 @@ export default function KanbanBoard() {
               key={column.id}
               column={column}
               bounties={getColumnBounties(column.id)}
-              onCardClick={openAnalyzeModal}
+              onCardClick={setDetailId}
               onOpenWorkspace={handleOpenWorkspace}
               onMove={handleMove}
               onArchive={handleArchive}
@@ -279,7 +300,7 @@ export default function KanbanBoard() {
 
         <DragOverlay>
           {activeBounty ? (
-            <div className="kanban-card">
+            <div className="kanban-card kanban-card-ghost">
               <div className="kanban-card-title">{activeBounty.title}</div>
               <div className="kanban-card-meta">
                 <span className="kanban-card-reward">{activeBounty.reward}</span>
@@ -288,6 +309,10 @@ export default function KanbanBoard() {
           ) : null}
         </DragOverlay>
       </DndContext>
+
+      {detailId && (
+        <BountyDetailPanel bountyId={detailId} onClose={() => setDetailId(null)} />
+      )}
     </div>
   )
 }
