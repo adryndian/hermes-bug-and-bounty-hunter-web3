@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import Markdown from 'react-markdown'
 import type { DraftWorkspace } from '../types'
 
 interface Props {
@@ -24,6 +25,20 @@ export default function ExecuteStep({ bountyId, onComplete }: Props) {
   const [chatInput, setChatInput] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
+
+  // Load persisted checklist from DB on mount
+  useEffect(() => {
+    const loadChecklist = async () => {
+      try {
+        const res = await fetch(`/api/copilot/workspace?bounty_id=${bountyId}`)
+        const data = await res.json()
+        if (data.ok && data.checklist?.length > 0) {
+          setChecklist(data.checklist)
+        }
+      } catch {}
+    }
+    loadChecklist()
+  }, [bountyId])
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -146,7 +161,7 @@ export default function ExecuteStep({ bountyId, onComplete }: Props) {
             {chatMessages.map((msg, i) => (
               <div key={i} className={`execute-chat-msg ${msg.role}`}>
                 <div className="execute-chat-bubble">
-                  {msg.content}
+                  {msg.role === 'assistant' ? <Markdown>{msg.content}</Markdown> : msg.content}
                 </div>
               </div>
             ))}

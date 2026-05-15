@@ -30,10 +30,11 @@ const BOTTOM_COLUMNS: { id: KanbanStatus; label: string }[] = [
   { id: 'archived', label: 'Archived' },
 ]
 
-function KanbanCardDraggable({ bounty, status, onClick, onArchive, onDelete, onAsk }: {
+function KanbanCardDraggable({ bounty, status, onClick, onOpenWorkspace, onArchive, onDelete, onAsk }: {
   bounty: Bounty
   status: KanbanStatus
   onClick: () => void
+  onOpenWorkspace: () => void
   onArchive: () => void
   onDelete: () => void
   onAsk: () => void
@@ -73,14 +74,19 @@ function KanbanCardDraggable({ bounty, status, onClick, onArchive, onDelete, onA
       {ws && (
         <div className="kanban-card-draft-progress">
           <div className="kanban-draft-dots">
-            {(['research', 'generate', 'review', 'finalize', 'submit'] as const).map(step => (
+            {(['research', 'generate', 'execute', 'review', 'finalize', 'submit'] as const).map(step => (
               <span key={step} className={`kanban-draft-dot kd-${ws.steps[step]}`} />
             ))}
           </div>
-          <span className="kanban-draft-label">{wsProgress}/5</span>
+          <span className="kanban-draft-label">{wsProgress}/6</span>
         </div>
       )}
       <div className="kanban-card-actions">
+        <Tooltip text="Open Workspace">
+          <button className="kanban-move-btn kanban-ws-btn" onClick={onOpenWorkspace}>
+            WS
+          </button>
+        </Tooltip>
         <Tooltip text="Ask AI">
           <button className="kanban-move-btn kanban-ask-btn" onClick={onAsk}>
             ASK
@@ -103,10 +109,11 @@ function KanbanCardDraggable({ bounty, status, onClick, onArchive, onDelete, onA
   )
 }
 
-function KanbanColumn({ column, bounties, onCardClick, onMove, onArchive, onDelete, onAsk }: {
+function KanbanColumn({ column, bounties, onCardClick, onOpenWorkspace, onMove, onArchive, onDelete, onAsk }: {
   column: { id: KanbanStatus; label: string }
   bounties: Bounty[]
   onCardClick: (id: string) => void
+  onOpenWorkspace: (id: string) => void
   onMove: (id: string, direction: 'left' | 'right') => void
   onArchive: (id: string) => void
   onDelete: (id: string) => void
@@ -131,6 +138,7 @@ function KanbanColumn({ column, bounties, onCardClick, onMove, onArchive, onDele
               bounty={bounty}
               status={column.id}
               onClick={() => onCardClick(bounty.id)}
+              onOpenWorkspace={() => onOpenWorkspace(bounty.id)}
               onArchive={() => onArchive(bounty.id)}
               onDelete={() => onDelete(bounty.id)}
               onAsk={() => onAsk(bounty.id)}
@@ -153,6 +161,9 @@ export default function KanbanBoard() {
   const openAnalyzeModal = useStore(s => s.openAnalyzeModal)
   const showToast = useStore(s => s.showToast)
   const attachBounty = useStore(s => s.attachBounty)
+  const setTab = useStore(s => s.setTab)
+  const initWorkspace = useStore(s => s.initWorkspace)
+  const drafts = useStore(s => s.drafts)
   const [activeId, setActiveId] = useState<string | null>(null)
 
   const sensors = useSensors(
@@ -213,6 +224,13 @@ export default function KanbanBoard() {
     showToast(`"${bounty?.title}" removed from board`, 'info')
   }
 
+  const handleOpenWorkspace = (bountyId: string) => {
+    if (drafts[bountyId] && !drafts[bountyId].workspace) {
+      initWorkspace(bountyId)
+    }
+    setTab('draft') // 'draft' is the internal tab id for Workspace
+  }
+
   const activeBounty = activeId ? bounties.find(b => b.id === activeId) : null
 
   const ALL_COLUMNS = [...COLUMNS, ...BOTTOM_COLUMNS]
@@ -234,6 +252,7 @@ export default function KanbanBoard() {
               column={column}
               bounties={getColumnBounties(column.id)}
               onCardClick={openAnalyzeModal}
+              onOpenWorkspace={handleOpenWorkspace}
               onMove={handleMove}
               onArchive={handleArchive}
               onDelete={handleDelete}
@@ -249,6 +268,7 @@ export default function KanbanBoard() {
               column={column}
               bounties={getColumnBounties(column.id)}
               onCardClick={openAnalyzeModal}
+              onOpenWorkspace={handleOpenWorkspace}
               onMove={handleMove}
               onArchive={handleArchive}
               onDelete={handleDelete}

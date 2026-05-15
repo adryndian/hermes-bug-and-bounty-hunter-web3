@@ -281,6 +281,44 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": str(e)}).encode())
+        elif self.path.startswith("/api/copilot/workspace"):
+            # Return workspace session data (checklist, resources, notes)
+            from urllib.parse import urlparse, parse_qs
+            qs = parse_qs(urlparse(self.path).query)
+            bounty_id = qs.get("bounty_id", [""])[0]
+            if not bounty_id:
+                self.send_response(400)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"ok": False, "error": "Missing bounty_id"}).encode())
+                return
+            try:
+                from db import get_db, init_db
+                init_db()
+                conn = get_db()
+                row = conn.execute("SELECT * FROM workspace_sessions WHERE bounty_id=?", (bounty_id,)).fetchone()
+                conn.close()
+                if row:
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps({
+                        "ok": True,
+                        "checklist": json.loads(row["checklist"] or "[]"),
+                        "resources": json.loads(row["resources"] or "[]"),
+                        "notes": row["notes"] or "",
+                        "session_id": row["session_id"],
+                    }).encode())
+                else:
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"ok": True, "checklist": [], "resources": [], "notes": ""}).encode())
+            except Exception as e:
+                self.send_response(500)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"ok": False, "error": str(e)}).encode())
         else:
             super().do_GET()
 
@@ -319,6 +357,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             try:
                 req_data = json.loads(body)
                 model = req_data.get("model", LLM_DEFAULT_MODEL)
+                if model == "default":
+                    model = LLM_DEFAULT_MODEL
                 messages = req_data.get("messages", [])
                 max_tokens = req_data.get("max_tokens", 2000)
                 temperature = req_data.get("temperature", 0.7)

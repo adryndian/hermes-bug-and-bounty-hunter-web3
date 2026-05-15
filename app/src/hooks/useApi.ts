@@ -208,7 +208,7 @@ Be specific and realistic. Tasks should be concrete action steps for THIS bounty
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'kr/claude-sonnet-4.6',
+        model: 'default',
         messages: [
           { role: 'system', content: 'You are a Web3 bounty analysis expert. Respond ONLY with valid JSON, no markdown, no extra text.' },
           { role: 'user', content: prompt }
@@ -272,6 +272,27 @@ Be specific and realistic. Tasks should be concrete action steps for THIS bounty
     }
     if (Object.keys(merged).length > Object.keys(currentAnalysis).length) {
       store.setAnalysis(merged)
+    }
+
+    // Hydrate workspace drafts from DB analysis for bounties with status
+    // This ensures workspace survives page refresh
+    const statuses = store.statuses
+    const analysis = store.analysis
+    const existingDrafts = store.drafts
+    for (const [bountyId, status] of Object.entries(statuses)) {
+      if (!existingDrafts[bountyId] && analysis[bountyId]) {
+        const a = analysis[bountyId] as any
+        store.setDraft(bountyId, {
+          match_score: a.match_score,
+          difficulty: a.difficulty,
+          time_estimate: a.time_estimate,
+          summary: a.summary,
+          strategy: a.strategy,
+          skills_needed: a.skills_needed,
+          verdict: a.verdict,
+          tasks: a.tasks || [],
+        })
+      }
     }
   }
 

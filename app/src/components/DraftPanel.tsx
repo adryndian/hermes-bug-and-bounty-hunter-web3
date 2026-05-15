@@ -66,6 +66,10 @@ export default function DraftPanel() {
         setWorkspaceResearch(bountyId, data.research.structured)
         setWorkspaceStepStatus(bountyId, 'research', 'done')
         setWorkspaceStepStatus(bountyId, 'generate', 'active')
+        // Unlock all subsequent steps (user can skip ahead)
+        setWorkspaceStepStatus(bountyId, 'execute', 'active')
+        setWorkspaceStepStatus(bountyId, 'review', 'active')
+        setWorkspaceStepStatus(bountyId, 'finalize', 'active')
         setWorkspaceStep(bountyId, 'generate')
       } else {
         setWorkspaceStepStatus(bountyId, 'research', 'error')

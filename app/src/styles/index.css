@@ -2051,6 +2051,49 @@ body {
   cursor: not-allowed;
 }
 
+/* Markdown in chat bubbles */
+.execute-chat-bubble h1, .execute-chat-bubble h2, .execute-chat-bubble h3, .execute-chat-bubble h4 {
+  font-size: 12px;
+  font-weight: 700;
+  margin: 8px 0 4px;
+}
+.execute-chat-bubble h1:first-child, .execute-chat-bubble h2:first-child,
+.execute-chat-bubble h3:first-child, .execute-chat-bubble h4:first-child {
+  margin-top: 0;
+}
+.execute-chat-bubble p { margin: 4px 0; }
+.execute-chat-bubble ul, .execute-chat-bubble ol {
+  margin: 4px 0;
+  padding-left: 16px;
+}
+.execute-chat-bubble li { margin: 2px 0; }
+.execute-chat-bubble code {
+  background: rgba(0,0,0,0.06);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 11px;
+}
+.execute-chat-bubble pre {
+  background: rgba(0,0,0,0.06);
+  padding: 8px;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-size: 11px;
+  margin: 6px 0;
+}
+.execute-chat-bubble pre code {
+  background: none;
+  padding: 0;
+}
+
+/* Kanban WS button */
+.kanban-ws-btn {
+  background: var(--brand) !important;
+  color: #fff !important;
+  font-size: 9px !important;
+  font-weight: 800;
+}
+
 @media (max-width: 768px) {
   .execute-layout {
     grid-template-columns: 1fr;
